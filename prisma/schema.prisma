@@ -1,0 +1,79 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+enum TournamentType {
+  SINGLE_ELIMINATION
+  DOUBLE_ELIMINATION
+  FREE_FOR_ALL
+  ROUND_ROBIN
+  SWISS
+}
+
+model Tournament {
+  id        Int           @id @default(autoincrement())
+  name      String
+  type      TournamentType
+  startDate DateTime?
+  endDate   DateTime?
+  participants Participant[]
+  matches     Match[]
+}
+
+model Participant {
+  id            Int           @id @default(autoincrement())
+  name          String
+  tournament    Tournament    @relation(fields: [tournamentId], references: [id])
+  tournamentId  Int
+  wins          Int           @default(0)
+  losses        Int           @default(0)
+  draws         Int           @default(0)
+  score         Float         @default(0.0)
+  rank          Int?
+
+  matchWins     Match[]       @relation("MatchWinner")
+  matchParticipants MatchParticipant[]
+
+  @@index([tournamentId])
+}
+
+model Match {
+  id           Int        @id @default(autoincrement())
+  tournament   Tournament @relation(fields: [tournamentId], references: [id])
+  tournamentId Int
+  round        Int?
+  matchNumber  Int?
+  startTime    DateTime?
+  endTime      DateTime?
+  status       String?    // e.g., "Scheduled", "Ongoing", "Completed"
+
+  winnerId     Int?       
+  winner       Participant? @relation("MatchWinner", fields: [winnerId], references: [id])
+
+  participants MatchParticipant[]
+
+  @@index([tournamentId])
+  @@index([winnerId])
+}
+
+
+model MatchParticipant {
+  matchId       Int
+  participantId Int
+  score         Float?
+
+  match         Match       @relation(fields: [matchId], references: [id])
+  participant   Participant @relation(fields: [participantId], references: [id])
+
+  @@id([matchId, participantId])
+  @@index([participantId])
+}
