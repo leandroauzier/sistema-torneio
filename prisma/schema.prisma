@@ -3,12 +3,24 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../app/generated/prisma"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+
+  organizedTournaments Tournament[] @relation("Organizer")
+  participants Participant[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum TournamentType {
@@ -25,8 +37,15 @@ model Tournament {
   type      TournamentType
   startDate DateTime?
   endDate   DateTime?
+
+  organizerId Int
+  organizer   User        @relation("Organizer", fields: [organizerId], references: [id])
+
   participants Participant[]
   matches     Match[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Participant {
@@ -40,10 +59,24 @@ model Participant {
   score         Float         @default(0.0)
   rank          Int?
 
+  userId        Int?
+  user          User?         @relation(fields: [userId], references: [id])
+
   matchWins     Match[]       @relation("MatchWinner")
   matchParticipants MatchParticipant[]
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([tournamentId])
+  @@index([userId])
+}
+
+enum StatusModel {
+  SCHEDULED
+  ONGOING
+  COMPLETED
+  CANCELLED
 }
 
 model Match {
@@ -54,12 +87,15 @@ model Match {
   matchNumber  Int?
   startTime    DateTime?
   endTime      DateTime?
-  status       String?    // e.g., "Scheduled", "Ongoing", "Completed"
+  status       StatusModel?
 
   winnerId     Int?       
   winner       Participant? @relation("MatchWinner", fields: [winnerId], references: [id])
 
   participants MatchParticipant[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([tournamentId])
   @@index([winnerId])
@@ -73,6 +109,9 @@ model MatchParticipant {
 
   match         Match       @relation(fields: [matchId], references: [id])
   participant   Participant @relation(fields: [participantId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@id([matchId, participantId])
   @@index([participantId])

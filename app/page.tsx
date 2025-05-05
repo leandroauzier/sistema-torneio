@@ -5,7 +5,7 @@ type Page = {};
 export default function Page() {
   return (
     <>
-      Página principal
+      API Tournament
     </>
   );
 }
